@@ -10,10 +10,10 @@ import java.sql.*;
 import java.util.NoSuchElementException;
 
 /*
-*
-* DataSource 사용
-*
-* */
+ *
+ * DataSource 사용
+ *
+ * */
 @Slf4j
 public class MemberRepositoryV1 {
 
@@ -83,6 +83,40 @@ public class MemberRepositoryV1 {
         }
     }
 
+    public Member findById(Connection connection, String memberId) throws SQLException {
+
+        String sql = "select * from member where member_id = ?";
+
+        PreparedStatement preparedStatement = null;
+        ResultSet resultSet = null;
+
+        try {
+            preparedStatement = connection.prepareStatement(sql);
+            preparedStatement.setString(1, memberId);
+
+            resultSet = preparedStatement.executeQuery();
+
+            if (resultSet.next()) {
+                Member member = new Member();
+                member.setMemberId(resultSet.getString("member_id"));
+                member.setMoney(resultSet.getInt("money"));
+
+                return member;
+
+            } else {
+                throw new NoSuchElementException("membet not found memberId = " + memberId);
+            }
+        } catch (SQLException e) {
+            log.error("db error", e);
+            throw e;
+
+        } finally {
+            JdbcUtils.closeResultSet(resultSet);
+            JdbcUtils.closeStatement(preparedStatement);
+//            JdbcUtils.closeConnection(connection);
+        }
+    }
+
     public void update(String memberId, int money) throws SQLException {
 
         String sql = "update member set money=? where member_id=?";
@@ -110,6 +144,33 @@ public class MemberRepositoryV1 {
 
     }
 
+    public void update(Connection connection, String memberId, int money) throws SQLException {
+
+        String sql = "update member set money=? where member_id=?";
+
+        PreparedStatement preparedStatement = null;
+
+        try {
+
+            preparedStatement = connection.prepareStatement(sql);
+            preparedStatement.setInt(1, money);
+            preparedStatement.setString(2, memberId);
+
+            int resultSize = preparedStatement.executeUpdate();
+            log.info("resultSize={}", resultSize);
+
+        } catch (SQLException e) {
+            log.error("db error", e);
+            throw e;
+
+        } finally {
+//            JdbcUtils.closeResultSet(resultSet);
+            JdbcUtils.closeStatement(preparedStatement);
+//            JdbcUtils.closeConnection(connection);
+        }
+
+    }
+
     public void delete(String memberId) throws SQLException {
         String sql = "delete from member where member_id=?";
 
@@ -131,13 +192,14 @@ public class MemberRepositoryV1 {
             close(connection, preparedStatement, null);
         }
     }
+
     private void close(Connection connection, Statement statement, ResultSet resultSet) {
         JdbcUtils.closeResultSet(resultSet);
         JdbcUtils.closeStatement(statement);
         JdbcUtils.closeConnection(connection);
     }
 
-    private Connection getConnection() throws SQLException{
+    private Connection getConnection() throws SQLException {
         Connection connection = dataSource.getConnection();
         log.info("get connection={}, class={}", connection, connection.getClass());
 
