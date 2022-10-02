@@ -119,6 +119,7 @@ public class MemberRepositoryV0 {
             close(connection, preparedStatement, null);
         }
     }
+
     private void close(Connection connection, Statement statement, ResultSet resultSet) {
 
         if (resultSet != null) {
